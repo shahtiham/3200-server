@@ -1,0 +1,141 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model credentials {
+  id            Int             @id @default(autoincrement())
+  username      String          @db.VarChar(32)
+  email         String          @unique @db.VarChar(64)
+  pass          String          @db.VarChar(128)
+  created       DateTime        @default(now())
+  questions     questions[]     @relation("userAsking")
+  //questions questions[]
+  answers       answers[]       @relation("userAnswering")
+  Code          Code?
+  role          role            @default(USER)
+  rep           Int             @default(0)
+  verified      Boolean         @default(false)
+  blocked       Boolean         @default(false)
+  suggestededit suggestededit[]
+  quscomments   quscomments[]   @relation("qcommentedBy")
+  anscomments   anscomments[]   @relation("anscommentedBy")
+  reqtag        reqtag[]        @relation("tagreqBy")
+}
+
+model Code {
+  id      Int         @id @default(autoincrement())
+  code    String
+  codeOf  credentials @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id Int         @unique
+}
+
+model tag {
+  tag_id        Int             @id @default(autoincrement())
+  tag           String          @unique @db.VarChar(32)
+  questions     questions[]
+  suggestededit suggestededit[]
+}
+
+model reqtag {
+  reqtag_id     Int         @id @default(autoincrement())
+  reqtag        String      @unique @db.VarChar(32)
+  created       DateTime    @default(now())
+  tagreqBy      credentials @relation("tagreqBy", fields: [credentialsId], references: [id], onDelete: Cascade)
+  credentialsId Int
+}
+
+model questions {
+  q_id            Int             @id @default(autoincrement())
+  title           String          @db.VarChar(1024)
+  question        String          @db.VarChar(15000)
+  //tag         String      @db.VarChar(32)
+  tag             tag[]
+  created         DateTime        @default(now())
+  // voted by these users..
+  upvotedBy       Int[]
+  downvotedBy     Int[]
+  voteCount       Int             @default(0)
+  isbountyrunning Boolean         @default(false)
+  isprotected     Boolean         @default(false) // answered by users who have rep >= reqrep
+  reqrep          Int             @default(0) // required reputation to answer this question
+  bountyvalue     Int             @default(0) // bounty to be awarded.
+  bountycreated   DateTime        @default(now())
+  bountyawarded   Int             @default(0) // this value > 0 means this question has accepted answer and bounty is awared to that answer. No bounty can be started for this question.
+  acceptedanswer  answers?        @relation("acceptedansqus") // relation indicating accepted answer
+  suggestededit   suggestededit[]
+  askedBy         credentials     @relation("userAsking", fields: [u_id], references: [id], onDelete: Cascade)
+  u_id            Int
+  //askedBy  credentials[]
+  answers         answers[]       @relation("ansToThisQ")
+  quscomments     quscomments[]   @relation("commentofQs")
+}
+
+model suggestededit {
+  id       Int          @id @default(autoincrement())
+  title    String       @db.VarChar(1024)
+  question String       @db.VarChar(15000)
+  tag      tag[]
+  created  DateTime     @default(now())
+  sugBy    credentials? @relation(fields: [u_id], references: [id], onDelete: Cascade)
+  u_id     Int // should be connected to a user.
+  sugofQs  questions?   @relation(fields: [q_id], references: [q_id], onDelete: Cascade)
+
+  q_id Int?
+}
+
+model quscomments {
+  id            Int         @id @default(autoincrement())
+  comment       String      @db.VarChar(15000)
+  date          DateTime    @default(now())
+  upvotedBy     Int[]
+  votes         Int         @default(0)
+  commentofQs   questions   @relation("commentofQs", fields: [questionsQ_id], references: [q_id], onDelete: Cascade)
+  questionsQ_id Int
+  qcommentedBy  credentials @relation("qcommentedBy", fields: [credentialsId], references: [id], onDelete: Cascade)
+  credentialsId Int
+}
+
+model answers {
+  a_id            Int           @id @default(autoincrement())
+  answer          String        @db.VarChar(15000)
+  date            DateTime      @default(now())
+  isaccepted      Boolean       @default(false) // indicates whether owner of question accepted this answer
+  // voted by these users..
+  upvotedBy       Int[]
+  downvotedBy     Int[]
+  voteCount       Int           @default(0)
+  bountyreceived  Int           @default(0) // 0 means no bounty awarded to this answer
+  answersToAQ     questions     @relation("ansToThisQ", fields: [q_id], references: [q_id], onDelete: Cascade)
+  q_id            Int
+  answeredBy      credentials   @relation("userAnswering", fields: [u_id], references: [id], onDelete: Cascade)
+  u_id            Int
+  anscomments     anscomments[] @relation("commentofAns")
+  acceptedansToAQ questions?    @relation("acceptedansqus", fields: [accq_id], references: [q_id]) // just a one to one relation indicating that this answer is accepted by the owner of the question
+  accq_id         Int?          @unique
+}
+
+model anscomments {
+  id             Int         @id @default(autoincrement())
+  comment        String      @db.VarChar(15000)
+  date           DateTime    @default(now())
+  upvotedBy      Int[] // TODO : reset database to apply change.
+  votes          Int         @default(0)
+  commentofAns   answers     @relation("commentofAns", fields: [answersA_id], references: [a_id], onDelete: Cascade)
+  answersA_id    Int
+  anscommentedBy credentials @relation("anscommentedBy", fields: [credentialsId], references: [id], onDelete: Cascade)
+  credentialsId  Int
+}
+
+enum role {
+  ADMIN
+  USER
+  MODERATOR
+}
