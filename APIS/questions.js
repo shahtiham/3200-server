@@ -1,3 +1,5 @@
+const {io} = require("socket.io-client");
+const socket = io.connect("http://localhost:8089");
 const createnotifics = require('../Utils/createnotifics')
 const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()

@@ -174,12 +174,12 @@ enum ntype {
   ATOQ // answer to a question. (extra table is needed for details('a_id' and 'q_id').) // DONE
   USRTOMOD // promoted to mod. (extra table is not needed) // DONE
   MODTOUSR // demoted to usr. (extra table is not needed) // DONE
-  BOUNTYRECVED // one of my answers received a bounty. (extra table is needed for details('ATOQ' extra table is used).) // DONE, todo:test
-  ANSACCEPTED // one of my answers was accepted. (extra table is needed for details('ATOQ' extra table is used).) // DONE, todo:test
+  BOUNTYRECVED // one of my answers received a bounty. (extra table is needed for details('ATOQ' extra table is used).) // DONE
+  ANSACCEPTED // one of my answers was accepted. (extra table is needed for details('ATOQ' extra table is used).) // DONE
   NWTAGREQSTED // new tag was requested to admin/mod. // ##*#**#*##
   NWTAGADDED // new tag added by admin/mod.           // ##*#**#*##
-  QEDTSUGSTED // one of my questions has an edit suggestion by someone. (extra table -> 'ATOQ' table, [a_id=-1], ). // DONE, todo:test
-  QEDTSUGACCEPTED // one of my edit suggestions to a question was accepted by owner of the question. (extra table -> 'ATOQ' table, [a_id=-1], ). // DONE, todo:test
-  DELQ // one of my questions was deleted by admin/mod. // DONE, todo:test
-  DELA // one of my answers was deleted by admin/mod. (extra table -> 'ATOQ' table, [a_id=-1], ). // DONE, todo:test
+  QEDTSUGSTED // one of my questions has an edit suggestion by someone. (extra table -> 'ATOQ' table, [a_id=-1], ). // DONE
+  QEDTSUGACCEPTED // one of my edit suggestions to a question was accepted by owner of the question. (extra table -> 'ATOQ' table, [a_id=-1], ). // DONE
+  DELQ // one of my questions was deleted by admin/mod. // DONE
+  DELA // one of my answers was deleted by admin/mod. (extra table -> 'ATOQ' table, [a_id=-1], ). // DONE
 }

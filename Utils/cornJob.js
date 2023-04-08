@@ -9,6 +9,7 @@ const awardbounty = async (q_id, u_id, bountyvalue, bountycreated, qownerrep, so
     // u_id = owner of question : q_id
     // qownerrep = reputation point of owner of question : q_id
     try{
+        // console.log(uw)
         const ans = await prisma.answers.findMany({ // finding all answers of question : q_id where owner of the answer is not blocked and who is not the owner of the question
             where:{
                 AND:{
@@ -71,7 +72,7 @@ const awardbounty = async (q_id, u_id, bountyvalue, bountycreated, qownerrep, so
                             bountyreceived:bountyvalue
                         }
                     }).then(async (fc) => {
-                        await createnotifics.createnotifics(aid.u.id, uw.id, aid.a_id, q_id, bountyvalue, false, (uw.role === 'ADMIN')?true:false, (uw.role === 'MODERATOR')?true:false, 'BOUNTYRECVED')
+                        await createnotifics.createnotifics(aid.u_id, uw.id, aid.a_id, q_id, bountyvalue, false, (uw.role === 'ADMIN')?true:false, (uw.role === 'MODERATOR')?true:false, 'BOUNTYRECVED')
                         socket.emit("send_bountyawbyadmin_to_usr", {message: "bountyawbyadmin", nrecverEmail:aid.answeredBy.email})
 
                         socket.emit("send_msg", {message: "hello"})
@@ -111,6 +112,7 @@ const getq = async (socket) => {
     const whoisdemotingqmark = 'tihamshah25599@gmail.com'
     try{
         const uw = await prisma.credentials.findFirst({where:{email:whoisdemotingqmark}, select:{id:true, role:true}})
+        // console.log(uw)
         const q = await prisma.questions.findMany({
             where:{
                 AND:{

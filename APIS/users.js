@@ -573,6 +573,7 @@ exports.getnotifics = async (req, res) => {
             where:{email:email},
             include:{
                 mynotifics:{
+                    orderBy:{created:'desc'},
                     include:{
                         n_by:true,
                         natoq:true
@@ -587,6 +588,10 @@ exports.getnotifics = async (req, res) => {
     }finally{
         prisma.$disconnect()
     }
+}
+exports.senddummynotif = async (req, res) => {
+    socket.emit("send_dummynotif_to_usr", {message: "dummy notif", nrecverEmail:'u2@gmail.com'})
+    return res.status(200).json('done')
 }
 
 exports.userlist = async (req, res, next) => {

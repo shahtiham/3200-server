@@ -88,8 +88,12 @@ io.on("connection", (socket) => {
     socket.on("send_dela_to_usr", (ev) => {
         socket.broadcast.emit("not", ev)
     })
+    socket.on("send_dummynotif_to_usr", (ev) => {
+        socket.broadcast.emit("not", ev)
+    })
 });
 nodecron.fn(io)
+app.post('/senddummynotif', users.senddummynotif)
 
 
 //console.log(`${Date.now() + crypto.randomBytes(10).toString('hex')}`)
