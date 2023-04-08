@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "credentials" ADD COLUMN     "nn" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "nnn" INTEGER NOT NULL DEFAULT 0;

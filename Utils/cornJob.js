@@ -1,9 +1,10 @@
 const cron = require('node-cron');
+const createnotifics = require('./createnotifics')
 const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()
 const {io} = require("socket.io-client");
 
-const awardbounty = async (q_id, u_id, bountyvalue, bountycreated, qownerrep, socket) => {
+const awardbounty = async (q_id, u_id, bountyvalue, bountycreated, qownerrep, socket, uw) => {
     // q_id = question that exceeded it's bounty period,
     // u_id = owner of question : q_id
     // qownerrep = reputation point of owner of question : q_id
@@ -25,7 +26,8 @@ const awardbounty = async (q_id, u_id, bountyvalue, bountycreated, qownerrep, so
                 date:true,
                 answeredBy:{
                     select:{
-                        rep:true // selecting the reputation value of owner of answer.
+                        rep:true, // selecting the reputation value of owner of answer.
+                        email:true
                     }
                 },
                 u_id:true,
@@ -69,6 +71,9 @@ const awardbounty = async (q_id, u_id, bountyvalue, bountycreated, qownerrep, so
                             bountyreceived:bountyvalue
                         }
                     }).then(async (fc) => {
+                        await createnotifics.createnotifics(aid.u.id, uw.id, aid.a_id, q_id, bountyvalue, false, (uw.role === 'ADMIN')?true:false, (uw.role === 'MODERATOR')?true:false, 'BOUNTYRECVED')
+                        socket.emit("send_bountyawbyadmin_to_usr", {message: "bountyawbyadmin", nrecverEmail:aid.answeredBy.email})
+
                         socket.emit("send_msg", {message: "hello"})
                     })
                 })
@@ -103,7 +108,9 @@ const awardbounty = async (q_id, u_id, bountyvalue, bountycreated, qownerrep, so
 
 const getq = async (socket) => {
     const bountyPeriod = 1
+    const whoisdemotingqmark = 'tihamshah25599@gmail.com'
     try{
+        const uw = await prisma.credentials.findFirst({where:{email:whoisdemotingqmark}, select:{id:true, role:true}})
         const q = await prisma.questions.findMany({
             where:{
                 AND:{
@@ -136,7 +143,7 @@ const getq = async (socket) => {
             item.bountydur = Math.ceil(Math.abs(item.bountycreated - now) / (1000 * 60))
             // console.log(item.bountydur, date, now, item.bountycreated)
             if(item.bountydur > bountyPeriod){
-                await awardbounty(item.q_id, item.u_id, item.bountyvalue, item.bountycreated, item.askedBy.rep, socket)
+                await awardbounty(item.q_id, item.u_id, item.bountyvalue, item.bountycreated, item.askedBy.rep, socket, uw)
             }
         })
         return q
@@ -149,7 +156,13 @@ const getq = async (socket) => {
 }
 
 const demotefrommodtousr = async (item, socket) => {
+    const whoisdemotingqmark = 'tihamshah25599@gmail.com'
     try{
+        const uw = await prisma.credentials.findFirst({where:{email:whoisdemotingqmark}, select:{id:true, role:true}})
+        const u = await prisma.credentials.findFirst({
+            where:{ email: item.email },
+            select:{ nn:true, nnn:true, id:true }
+        })
         await prisma.credentials.update({
             where:{
                 email: item.email
@@ -157,8 +170,9 @@ const demotefrommodtousr = async (item, socket) => {
             data:{
                 role:'USER'
             }
-        }).then(async something => {
-            socket.emit("send_mod_dem_to_usr", {message: "mod dem to usr"})
+        }).then(async (something) => {
+            await createnotifics.createnotifics(u.id, uw.id, -1, -1, 0, false, (uw.role === 'ADMIN')?true:false, (uw.role === 'MODERATOR')?true:false, 'MODTOUSR')
+            socket.emit("send_mod_dem_to_usr", {message: "mod dem to usr", nrecverEmail:item.email})
         })
     } catch(e) {
         console.log(e)

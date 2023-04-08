@@ -28,6 +28,36 @@ model credentials {
   quscomments   quscomments[]   @relation("qcommentedBy")
   anscomments   anscomments[]   @relation("anscommentedBy")
   reqtag        reqtag[]        @relation("tagreqBy")
+  nn            Int             @default(0)
+  nnn           Int             @default(0)
+  mynotifics    notifications[] @relation("n_for")
+  notify        notifications[] @relation("n_by")
+}
+
+model notifications {
+  n_id     Int           @id @default(autoincrement())
+  created  DateTime      @default(now())
+  n_for    credentials[] @relation("n_for") // This notification can be shown to multiple user.
+  n_by     credentials   @relation("n_by", fields: [nBy_u_id], references: [id], onDelete: Cascade)
+  nBy_u_id Int
+  nseen    Boolean       @default(false)
+  nByAdmin Boolean       @default(false)
+  nByMod   Boolean       @default(false)
+  ntype    ntype
+  natoq    natoq?
+}
+
+model natoq {
+  // owner of the answer/person who answered is the one indicated by 'nBy_u_id' field in 'notifications' table.
+  // owner of the question is the one getting this notification, indicated by 'u_id' field in 'notifications' table.
+  // 'a_id' and 'q_id' available when posting an answer.
+  id                Int           @id @default(autoincrement())
+  a_id              Int
+  q_id              Int
+  natoqof           notifications @relation(fields: [notificationsN_id], references: [n_id], onDelete: Cascade)
+  notificationsN_id Int           @unique
+  bountyval         Int           @default(0) // not needed for ntype=ATOQ, needed for 'BOUNTYRECVED'.
+  isaccepted        Boolean       @default(false) // not needed for ntype=ATOQ|BOUNTYRECVED, needed for 'ANSACCEPTED'.
 }
 
 model Code {
@@ -138,4 +168,18 @@ enum role {
   ADMIN
   USER
   MODERATOR
+}
+
+enum ntype {
+  ATOQ // answer to a question. (extra table is needed for details('a_id' and 'q_id').) // DONE
+  USRTOMOD // promoted to mod. (extra table is not needed) // DONE
+  MODTOUSR // demoted to usr. (extra table is not needed) // DONE
+  BOUNTYRECVED // one of my answers received a bounty. (extra table is needed for details('ATOQ' extra table is used).) // DONE, todo:test
+  ANSACCEPTED // one of my answers was accepted. (extra table is needed for details('ATOQ' extra table is used).) // DONE, todo:test
+  NWTAGREQSTED // new tag was requested to admin/mod. // ##*#**#*##
+  NWTAGADDED // new tag added by admin/mod.           // ##*#**#*##
+  QEDTSUGSTED // one of my questions has an edit suggestion by someone. (extra table -> 'ATOQ' table, [a_id=-1], ). // DONE, todo:test
+  QEDTSUGACCEPTED // one of my edit suggestions to a question was accepted by owner of the question. (extra table -> 'ATOQ' table, [a_id=-1], ). // DONE, todo:test
+  DELQ // one of my questions was deleted by admin/mod. // DONE, todo:test
+  DELA // one of my answers was deleted by admin/mod. (extra table -> 'ATOQ' table, [a_id=-1], ). // DONE, todo:test
 }

@@ -84,7 +84,7 @@ exports.main = async (req, res, next) => {
                 email: "u1@gmail.com" //'tihamshah25599@gmail.com'
             },
             data:{
-                // rep:78,
+                rep:278,
                 //blocked:true
                 // role:'MODERATOR',
                 //verified:false
@@ -108,6 +108,12 @@ exports.main = async (req, res, next) => {
         // (1000 * 60) => minutes
         // (1000 * 60 * 60 * 24) => days
         //console.log(Math.ceil(Math.abs(user[0].created - new Date(date)) / (1000 * 60 )))
+
+        // find admins/ mod
+        user = await prisma.questions.findMany({select:{q_id:true, title:true, answers:true}})
+        user = await prisma.credentials.findMany({include:{mynotifics:true}})
+        // user = await prisma.notifications.findMany({include:{n_for:true, n_by:true, natoq:true}})
+        //user = await prisma.tag.findMany({include:{questions:true, suggestededit:true}})
         res.json(user)
     }catch(e){
         res.status(404).send('Error')

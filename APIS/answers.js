@@ -1,5 +1,8 @@
 const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()
+const createnotifics = require('../Utils/createnotifics')
+const {io} = require("socket.io-client");
+const socket = io.connect("http://localhost:8089");
 
 exports.getans = async (req, res, next) => {
     const {q_id} = req.params
@@ -93,9 +96,25 @@ exports.postans = async (req, res, next) => {
                 answeredBy:{
                     connect:{id:user_id}
                 }
+            },
+            include:{
+                answersToAQ:{
+                    include:{
+                        askedBy:{
+                            select:{
+                                id:true,
+                                email:true,
+                                role:true
+                            }
+                        }
+                    }
+                }
             }
         })
         a.insertId = a.a_id
+        // console.log(a)
+        await createnotifics.createnotifics(a.answersToAQ.askedBy.id, user_id, a.a_id, a.answersToAQ.q_id, 0, false, (uinfo.role === 'ADMIN')?true:false, (uinfo.role === 'MODERATOR')?true:false, 'ATOQ')
+        socket.emit("send_anstoaq_to_usr", {message: "ans to a q", nrecverEmail:a.answersToAQ.askedBy.email})
         res.json(a)
     } catch(e) {
         console.log(e)
@@ -156,6 +175,7 @@ exports.awardbounty = async (req, res, next) => {
             },
             select:{
                 id:true,
+                email:true,
                 role:true,
                 rep:true,
                 blocked:true
@@ -167,6 +187,7 @@ exports.awardbounty = async (req, res, next) => {
             },
             select:{
                 id:true,
+                email:true,
                 role:true,
                 rep:true,
                 blocked:true
@@ -227,6 +248,10 @@ exports.awardbounty = async (req, res, next) => {
                         bountyreceived:qinfo.bountyvalue
                     }
                 }).then(async (smtn) => {
+                    await createnotifics.createnotifics(ansui.id, user_id, a_id, q_id, qinfo.bountyvalue, false, (uinfo.role === 'ADMIN')?true:false, (uinfo.role === 'MODERATOR')?true:false, 'BOUNTYRECVED')
+                    socket.emit("send_bountyaw_to_usr", {message: "bountyaw", nrecverEmail:ansui.email})
+                    
+                    socket.emit("send_bounty_awarded_to_usr", {message: "bounty awarded", answerOwnerId:u_id})
                     res.status(200).send('Bounty awarded successfully')
                 })
             })
@@ -260,6 +285,7 @@ exports.acceptans = async (req, res, next) => {
                 id:u_id
             },
             select:{
+                email:true,
                 role:true,
                 rep:true,
                 blocked:true
@@ -311,6 +337,9 @@ exports.acceptans = async (req, res, next) => {
                 rep: ansui.rep + 15
             }
         })
+        await createnotifics.createnotifics(u_id, user_id, a_id, q_id, 0, false, (uinfo.role === 'ADMIN')?true:false, (uinfo.role === 'MODERATOR')?true:false, 'ANSACCEPTED')
+        socket.emit("send_ansaccepted_to_usr", {message: "ansaccepted", nrecverEmail:ansui.email})
+
         res.status(200).send('answer accepted successfully')
     }catch(e){
         console.log(e)
@@ -322,7 +351,10 @@ exports.acceptans = async (req, res, next) => {
 
 exports.dela = async (req, res) => {
     const {a_id} = req.body
+    const user_id = req.user.user_id
     try{
+        const auinfo = await prisma.answers.findFirst({where:{a_id:a_id}, include:{answeredBy:{select:{id:true, email:true, role:true}}}})
+        const uinfo = await prisma.credentials.findUnique({where:{id:user_id}, select:{email:true, role:true}})
         const a = await prisma.answers.findFirst({
             where:{a_id:a_id}
         })
@@ -332,6 +364,9 @@ exports.dela = async (req, res) => {
         await prisma.answers.delete({
             where:{a_id:a_id}
         }).then(async something => {
+            await createnotifics.createnotifics(auinfo.answeredBy.id, user_id, -1, a.q_id, 0, false, (uinfo.role === 'ADMIN')?true:false, (uinfo.role === 'MODERATOR')?true:false, 'DELA')
+            socket.emit("send_dela_to_usr", {message: "dela", nrecverEmail:auinfo.answeredBy.email})        
+
             return res.status(200).send('Successfully deleted the answer')
         })
 

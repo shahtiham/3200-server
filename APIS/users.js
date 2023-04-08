@@ -4,7 +4,10 @@ const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
 const crypto = require('crypto');
 const sendMail = require('../Utils/sendmail');
+const createnotifics = require('../Utils/createnotifics')
 const Axios = require('axios')
+const {io} = require("socket.io-client");
+const socket = io.connect("http://localhost:8089");
 
 exports.login = async (req, res, next) => {
     
@@ -531,6 +534,61 @@ exports.detaileduinfo = async (req, res, next) => {
     }
 }
 
+exports.getnncnt = async (req, res) => {
+    const {email} = req.params
+    try{
+        const u = await prisma.credentials.findFirst({
+            where:{email:email},
+            select:{email:true, nn:true}
+        })
+        return res.status(200).json(u)
+    }catch(e){
+        console.log(e)
+        return res.status(404).send('Error')
+    }finally{
+        prisma.$disconnect()
+    }
+}
+
+exports.setnncnt2z = async (req, res) => {
+    const {email} = req.params
+    try{
+        const u = await prisma.credentials.update({
+            where:{email:email},
+            data:{nn:0}
+        })
+        return res.status(200).json(u)
+    }catch(e){
+        console.log(e)
+        return res.status(404).send('Error')
+    }finally{
+        prisma.$disconnect()
+    }
+}
+
+exports.getnotifics = async (req, res) => {
+    const {email} = req.params
+    try{
+        const u = await prisma.credentials.findFirst({
+            where:{email:email},
+            include:{
+                mynotifics:{
+                    include:{
+                        n_by:true,
+                        natoq:true
+                    }
+                }
+            }
+        })
+        return res.status(200).json(u)
+    }catch(e){
+        console.log(e)
+        return res.status(404).send('Error')
+    }finally{
+        prisma.$disconnect()
+    }
+}
+
 exports.userlist = async (req, res, next) => {
     const {mod, sort} = req.query
     const ordBydate = {
@@ -568,8 +626,17 @@ exports.userlist = async (req, res, next) => {
 }
 
 exports.protomod = async (req, res) => {
+    // email of the person to be promoted
     const {email} = req.body
+
+    // the mod/admin
+    const whoispromotingqmark = 1//req.user.user_id
     try{
+        const uw = await prisma.credentials.findFirst({where:{id:whoispromotingqmark}, select:{email:true, role:true}})
+        const u = await prisma.credentials.findFirst({
+            where:{ email: email },
+            select:{ nn:true, nnn:true, id:true }
+        })
         await prisma.credentials.update({
             where:{
                 email: email
@@ -577,7 +644,9 @@ exports.protomod = async (req, res) => {
             data:{
                 role:'MODERATOR'
             }
-        }).then(async something => {
+        }).then(async (something) => {
+            await createnotifics.createnotifics(u.id, whoispromotingqmark, -1, -1, 0, false, (uw.role === 'ADMIN')?true:false, (uw.role === 'MODERATOR')?true:false, 'USRTOMOD')
+            socket.emit("send_protomod_to_usr", {message: "User promoted to moderator", nrecverEmail:email})
             return res.status(200).send('User promoted to moderator')
         })
     }catch(e){
@@ -588,8 +657,17 @@ exports.protomod = async (req, res) => {
     }
 }
 exports.detousr = async (req, res) => {
+    // email of the mod to be demoted
     const {email} = req.body
+
+    // the mod/admin
+    const whoisdemotingqmark = 1//req.user.user_id
     try{
+        const uw = await prisma.credentials.findFirst({where:{id:whoisdemotingqmark}, select:{email:true, role:true}})
+        const u = await prisma.credentials.findFirst({
+            where:{ email: email },
+            select:{ nn:true, nnn:true, id:true }
+        })
         await prisma.credentials.update({
             where:{
                 email: email
@@ -597,7 +675,9 @@ exports.detousr = async (req, res) => {
             data:{
                 role:'USER'
             }
-        }).then(async something => {
+        }).then(async (something) => {
+            await createnotifics.createnotifics(u.id, whoisdemotingqmark, -1, -1, 0, false, (uw.role === 'ADMIN')?true:false, (uw.role === 'MODERATOR')?true:false, 'MODTOUSR')
+            socket.emit("send_detousr_to_usr", {message: "Moderator demoted to user", nrecverEmail:email})
             return res.status(200).send('Moderator demoted to user')
         })
     }catch(e){

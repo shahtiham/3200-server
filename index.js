@@ -56,7 +56,37 @@ io.on("connection", (socket) => {
         socket.broadcast.emit("failed_to_aw_b", ev)
     })
     socket.on("send_mod_dem_to_usr", (ev) => {
-        socket.broadcast.emit("mod_dem_to_usr", ev)
+        socket.broadcast.emit("not", ev)
+    })
+    socket.on("send_protomod_to_usr", (ev) => {
+        socket.broadcast.emit("not", ev)
+    })
+    socket.on("send_detousr_to_usr", (ev) => {
+        socket.broadcast.emit("not", ev)
+    })
+    socket.on("send_anstoaq_to_usr", (ev) => {
+        socket.broadcast.emit("not", ev)
+    })
+    socket.on("send_bountyaw_to_usr", (ev) => {
+        socket.broadcast.emit("not", ev)
+    })
+    socket.on("send_bountyawbyadmin_to_usr", (ev) => {
+        socket.broadcast.emit("not", ev)
+    })
+    socket.on("send_ansaccepted_to_usr", (ev) => {
+        socket.broadcast.emit("not", ev)
+    })
+    socket.on("send_qedtsug_to_usr", (ev) => {
+        socket.broadcast.emit("not", ev)
+    })
+    socket.on("send_qedtsugaccepted_to_usr", (ev) => {
+        socket.broadcast.emit("not", ev)
+    })
+    socket.on("send_delq_to_usr", (ev) => {
+        socket.broadcast.emit("not", ev)
+    })
+    socket.on("send_dela_to_usr", (ev) => {
+        socket.broadcast.emit("not", ev)
     })
 });
 nodecron.fn(io)
@@ -505,6 +535,14 @@ app.post('/resetpass', users.resetpass)
 // send password reset code
 app.post('/sendpassresetcode', users.sendpassresetcode)
 
+// get new notification count
+app.get('/getnncnt/:email', users.getnncnt)
+
+// set new notification count to zero
+app.get('/setnncnt2z/:email', users.setnncnt2z)
+
+// get list of notifications
+app.get('/getnotifics/:email', users.getnotifics)
 
 // ADMIN - MODERATOR
 
@@ -514,8 +552,8 @@ app.post('/demotetousr', users.detousr)
 app.post('/restrictusr', users.restusr)
 app.post('/unrestrictusr', users.unrestusr)
 
-app.post('/deletequestion', questions.delq)
-app.post('/deleteanswer', answers.dela)
+app.post('/deletequestion', auth, questions.delq)
+app.post('/deleteanswer', auth, answers.dela)
 
 //get list of requested tags
 app.get('/requestedtaglist', auth, tags.reqtaglist)

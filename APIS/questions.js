@@ -1,3 +1,4 @@
+const createnotifics = require('../Utils/createnotifics')
 const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()
 
@@ -138,6 +139,7 @@ exports.questions = async (req, res, next) => {
                 tag:{
                     // this connects many to many relation.
                     connect:tagAr
+                    // create:[{tag:"openAI"}, {tag:"spaceX"}] // or directly create new tag while asking new question
                 },
                 askedBy:{
                     connect:{
@@ -146,6 +148,7 @@ exports.questions = async (req, res, next) => {
                 }
             }
         })
+        // console.log(qstn)
         qstn.insertId = qstn.q_id
         res.json(qstn)
 
@@ -170,6 +173,7 @@ exports.questions = async (req, res, next) => {
 }
 
 exports.editquestion = async (req, res, next) => {
+    // u_id = owner of the question.
     const {q_id, u_id, title, question, tag} = req.body
     const user_id = req.user.user_id
     try{
@@ -183,6 +187,7 @@ exports.editquestion = async (req, res, next) => {
                 tag_id:true
             }
         })
+        const quinfo = await prisma.credentials.findFirst({where:{id:u_id}, select:{email:true, role:true}})
         const uinfo = await prisma.credentials.findUnique({
             where:{
                 id:user_id
@@ -241,6 +246,9 @@ exports.editquestion = async (req, res, next) => {
                     }
                 }
             }).then(async (smtn) => {
+                await createnotifics.createnotifics(u_id, user_id, -1, q_id, 0, false, (uinfo.role === 'ADMIN')?true:false, (uinfo.role === 'MODERATOR')?true:false, 'QEDTSUGSTED')
+                socket.emit("send_qedtsug_to_usr", {message: "qedtsug", nrecverEmail:quinfo.email})        
+
                 return res.status(200).send("Successfully suggested the edit")
             })
         }
@@ -333,6 +341,9 @@ exports.acceptedtsgt = async (req, res, next) => {
                         rep: sgtuinfo.rep + 2
                     }
                 }).then(async (done) => {
+                    await createnotifics.createnotifics(sgtuinfo.id, user_id, -1, tq.q_id, 0, false, (uinfo.role === 'ADMIN')?true:false, (uinfo.role === 'MODERATOR')?true:false, 'QEDTSUGACCEPTED')
+                    socket.emit("send_qedtsugaccepted_to_usr", {message: "qedtsugaccepted", nrecverEmail:sgtuinfo.email})        
+
                     return res.status(200).send('Successfully applied the suggested edit')
                 })
             })
@@ -475,10 +486,16 @@ exports.setbounty = async (req, res, next) => {
 
 exports.delq = async (req, res) => {
     const {q_id} = req.body
+    const user_id = req.user.user_id
     try{
+        const quinfo = await prisma.questions.findFirst({where:{q_id:q_id}, include:{askedBy:{select:{id:true, email:true, role:true}}}})
+        const uinfo = await prisma.credentials.findUnique({where:{id:user_id}, select:{email:true, role:true}})
         await prisma.questions.delete({
             where:{q_id:q_id}
         }).then(async something => {
+            await createnotifics.createnotifics(quinfo.askedBy.id, user_id, -1, -1, 0, false, (uinfo.role === 'ADMIN')?true:false, (uinfo.role === 'MODERATOR')?true:false, 'DELQ')
+            socket.emit("send_delq_to_usr", {message: "delq", nrecverEmail:quinfo.askedBy.email})        
+
             return res.status(200).send('Successfully deleted the question')
         })
 
